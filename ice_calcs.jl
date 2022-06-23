@@ -19,7 +19,7 @@ Pkg.activate("ice_env")
         rhow = 1 Gt/m3 -> "disregarding the minor salinity/density effects of mixing fresh meltwater with seawater"
             More about: https://sealevel.info/conversion_factors.html
     """
-function SLE(data, rhoi=0.9167, rhow=1.0, Aoc=3.618*10^8)
+function SLE(data; rhoi=0.9167, rhow=1.0, Aoc=3.618*10^8)
     SLE = rhoi/rhow * 1e3 / Aoc * data
     return SLE
 end
@@ -30,10 +30,23 @@ end
         rhow = 1 Gt/m3 -> "disregarding the minor salinity/density effects of mixing fresh meltwater with seawater"
             More about: https://sealevel.info/conversion_factors.html 
     """
-function SLR(data, rhoi=0.9167, rhow=1, Aoc=3.618*10^8)
-    sle = SLE(data, rhoi, rhow, Aoc)
+function SLR(data; rhoi=0.9167, rhow=1, Aoc=3.618*10^8)
+    sle = SLE(data, rhoi=rhoi, rhow=rhow, Aoc=Aoc)
     SLR = sle - sle[0]
     return SLR
+end
+
+#-- isfloating
+@doc """ Calculates if ice is floating \n
+        thick_data  -> ice thickness data
+        slvl        -> sea level height
+        bdh         -> bed height
+    """
+function isfloating(thick_data, slvl, bdh; rhoi=0.9167, rhosw=1.02)
+    floating_mask = thick_data - rhosw/rhoi * max(slvl - bdh, 0)
+    floating_mask[floating_mask <= 0] = true
+    floating_mask[floating_mask > 0] = false
+    return hg_array
 end
 
 locdata = "/home/sergio/entra/ice_data/Antarctica/ANT-32KM/ANT-32KM_TOPO-BedMachine.nc"

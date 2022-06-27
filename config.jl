@@ -9,11 +9,13 @@ Aim: This script configures the dependencies for using ice_tools\n
 
 # Environment generation
 using Pkg
-#Pkg.generate("ice_env")
+Pkg.generate("ice_env")
 Pkg.activate("ice_env")
 
 # Adding dependencies ... 
 ## ice_calcs
+
+## ice_loadf
 Pkg.add("NetCDF")
 
 ## ice_plots

@@ -46,7 +46,7 @@ function isfloating(thick_data, slvl, bdh; rhoi=0.9167, rhosw=1.02)
     floating_mask = thick_data - rhosw/rhoi * max(slvl - bdh, 0)
     floating_mask[floating_mask <= 0] = true
     floating_mask[floating_mask > 0] = false
-    return hg_array
+    return floating_mask
 end
 
 locdata = "/home/sergio/entra/ice_data/Antarctica/ANT-32KM/ANT-32KM_TOPO-BedMachine.nc"

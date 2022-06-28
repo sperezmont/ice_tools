@@ -10,6 +10,7 @@ Aim: Some functions to make plots\n
 # Packages
 using Pkg
 Pkg.activate("ice_env")
+
 using NetCDF
 using CairoMakie
 using ColorSchemes

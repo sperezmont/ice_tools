@@ -17,7 +17,6 @@ Pkg.activate("ice_env")
 
 ## ice_loadf
 Pkg.add("NetCDF")
-Pkg.add("NCDatasets")
 
 ## ice_plots
 Pkg.add("CairoMakie")

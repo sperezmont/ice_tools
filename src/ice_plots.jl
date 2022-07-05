@@ -61,27 +61,28 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; lyout=(
     p = 1
     for i in 1:nrows, j in 1:ncols
         ax = Axis(fig[i, j], grid=true,
-            xlabelsize=fntsz, ylabelsize=fntsz,
+            xlabelsize=0.9*fntsz, ylabelsize=0.9*fntsz,
             xlabel=xname, ylabel=yname[p])
+        update_theme!()
         min_vs, max_vs = [], []
         for k in 1:nseries
             if ndims(data) == 1
-                all(y->y==0, data) || lines!(ax, x, data, color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
-                all(y->y==0, data) || (push!(min_vs, minimum(data)))
-                all(y->y==0, data) || (push!(max_vs, maximum(data))) 
+                all(y->y==Inf, data) || lines!(ax, x, data, color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
+                all(y->y==Inf, data) || (push!(min_vs, minimum(data)))
+                all(y->y==Inf, data) || (push!(max_vs, maximum(data))) 
             elseif ndims(data) == 2
-                all(y->y==0, data[k, :]) || lines!(ax, x, data[k, :], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
-                all(y->y==0, data[k, :]) || (push!(min_vs, minimum(data[k, :])))
-                all(y->y==0, data[k, :]) || (push!(max_vs, maximum(data[k, :])))
+                all(y->y==Inf, data[k, :]) || lines!(ax, x, data[k, :], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
+                all(y->y==Inf, data[k, :]) || (push!(min_vs, minimum(data[k, :])))
+                all(y->y==Inf, data[k, :]) || (push!(max_vs, maximum(data[k, :])))
             elseif ndims(data) == 3
-                all(y->y==0, data[p, k, :]) || lines!(ax, x, data[p, k, :], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
-                all(y->y==0, data[p, k, :]) || (push!(min_vs, minimum(data[p, k, :])))
-                all(y->y==0, data[p, k, :]) || (push!(max_vs, maximum(data[p, k, :])))
+                all(y->y==Inf, data[p, k, :]) || lines!(ax, x, data[p, k, :], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
+                all(y->y==Inf, data[p, k, :]) || (push!(min_vs, minimum(data[p, k, :])))
+                all(y->y==Inf, data[p, k, :]) || (push!(max_vs, maximum(data[p, k, :])))
             end
         end
         p = p + 1
-        #axislegend(ax, position=:rc)
-        Legend(fig[1, end+1], ax)
+
+        Legend(fig[1, end+1], ax, framevisible=false, labelsize=0.7*fntsz)
         miny, maxy = minimum(min_vs), maximum(max_vs)
         limits!(ax, x[1], x[end], miny, maxy) 
 
@@ -223,18 +224,18 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
     for i in 1:nrows, j in 1:ncols
         if j == 1
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
+                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, ylabel=ynames[i], xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
+                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, ylabel=ynames[i])
                 update_theme!()
             end
         else
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
+                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz)
+                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz)
                 update_theme!()
             end
         end
@@ -245,8 +246,9 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
             try
                 c = contourf!(ax, data2plot[p, :, :], levels=ticks_val, colormap=clrmp)
                 push!(maps, c)
-                (cont != []) && contour(ax, cont[p, :, :], levels=cont_lvls, color="black")
+                (cont != []) && contour!(ax, cont[p, :, :], levels=cont_lvls, color="black", linewidth=2)
             catch
+                (cont != []) && contour!(ax, cont[p, :, :], levels=cont_lvls, color="black", linewidth=2)
                 p = p + 1
                 (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.5*fntsz, ticks=(ticks_val, ticks_str)))
                 continue

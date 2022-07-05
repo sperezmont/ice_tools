@@ -1,3 +1,12 @@
+
+"""
+Author: Sergio Pérez Montero\n
+Date: 27.06.2022\n
+
+Aim: Easy and quick script to plot Yelmo (Robinson et al. 2020) results\n
+
+"""
+
 # Packages
 using Pkg
 Pkg.activate("ice_env")
@@ -9,32 +18,35 @@ include("../src/ice_plots.jl")
 # User parameters
 locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/taubc_01/"        # path to save plots
 locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/taubc_01/"        # path to locate the data
-expnames = ["abuc_bc0", "abuk_bc0", "abum_bc0", "abum-mod_bc0",
-            "abuc_bch", "abuk_bch", "abum_bch", "abum-mod_bch",
-            "abuc_bco", "abuk_bco", "abum_bco", "abum-mod_bco"]       # vector with the names of the experiments
-explabels = ["abuc_bc0", "abuk_bc0", "abum_bc0", "abum-mod_bc0",
-            "abuc_bch", "abuk_bch", "abum_bch", "abum-mod_bch",
-            "abuc_bco", "abuk_bco", "abum_bco", "abum-mod_bco"]      # vector with the names you want to show (nothing/label)
-xpars, ypars = ["ABUC", "ABUK", "ABUM", "ABUM-mod"],
-                ["zero", "ice", "ocean"]
+expnames = ["abuc_fbc0", "abum-mod_fbc0", "abum_fbc0", "abuk_fbc0",
+            "abuc_fbch", "abum-mod_fbch", "abum_fbch", "abuk_fbch",
+            "abuc_fbco", "abum-mod_fbco", "abum_fbco", "abuk_fbco",
+            "abuc_fbcs", "abum-mod_fbcs", "abum_fbcs", "abuk_fbcs"]       # vector with the names of the experiments
+explabels = ["abuc f0", "abum-mod f0", "abum f0", "abuk f0",
+             "abuc fh", "abum-mod fh", "abum fh", "abuk fh",
+             "abuc fo", "abum-mod fo", "abum fo", "abuk fo",
+             "abuc fs", "abum-mod fs", "abum fs", "abuk fs"]      # vector with the names you want to show (nothing/label)
+xpars, ypars = ["ABUC", "ABUM-mod", "ABUM", "ABUK"],              # vector with x and y labels for par vs par plot
+               ["zero", "ice", "ocean", "ice+ocean"]
+                
 
-varnames = ["difH_grnd"]       # vector with variables to plot "V_sle","H_ice", "H_grnd", "z_srf", "uxy_s", 
-units = [""]     # if composite_var, ""         "m SLE", "m", "m", "m", "m/a", 
+varnames = ["SLR", "diffH_grnd", "diffuxy_s"]       # vector with variables to plot 
 units_time = "yrs"
 times2D = "end" # "end"/index
 
-plot_name = "taubc_01"
-colors, lstyles, lwidths = ["red", "blue", "green","orange","red", "blue", "green","orange","red", "blue", "green","orange"],     # ME QUEDO AQUI, NO FUNCIONA
-                           [:solid,:solid,:solid,:solid,:dash,:dash,:dash,:dash,:dot,:dot,:dot,:dot,:dashdot,:dashdot,:dashdot,:dashdot],
-                           [2, 3, 4, 6,2, 3, 4, 6,2, 3, 4, 6,2, 3, 4, 6]
-layout_1D, layout_2D = (1, 1), (3, 4)
+plot_name = "taubc_01f"
+colors, lstyles, lwidths = repeat(["red", "blue", "green", "purple"], 4),    
+                           [repeat([:solid], 4); repeat([:dash], 4); repeat([:dot], 4); repeat([:dashdot], 4)],
+                           repeat([3], 16)
+layout_1D, layout_2D = (1, 1), (4, 4)
 
 #### SCRIPT ####
 yelmo1D_vars = ["V_sle"]
 yelmo2D_vars = ["H_ice", "H_grnd", "z_srf", "uxy_s"]
-composite_vars = ["difH_grnd"]
+composite_vars = ["SLR", "diffH_grnd", "diffuxy_s"]
 
 clrmps = Dict("H_ice"=>:Blues, "H_grnd"=>:curl, "z_srf"=>:dense, "uxy_s"=>:rainbow)
+units = Dict("H_ice"=>"m", "H_grnd"=>"m", "z_srf"=>"m", "uxy_s"=>"m/a")
 
 # Check if paths exist 
 isdir(locplot) || throw(ErrorException(string(locplot," does not exist")))
@@ -46,6 +58,7 @@ isdir(locdata) || throw(ErrorException(string(locdata," does not exist")))
 # Convert to LaTeX font
 for i in 1:length(explabels)
     explabels[i] = replace(explabels[i], "_" => "~")
+    explabels[i] = replace(explabels[i], " " => "~")
 end
 explabels = [L"%$(i)" for i in explabels]
 
@@ -68,11 +81,11 @@ for i in 1:length(varnames)
     if varnames[i] in yelmo1D_vars
         push!(vars_1D, varnames[i])
         push!(labels_1D, varlabels[i])
-        push!(units_1D, units[i])
+        push!(units_1D, units[varnames[i]])
     elseif varnames[i] in yelmo2D_vars
         push!(vars_2D, varnames[i])
         push!(labels_2D, varlabels[i])
-        push!(units_2D, units[i])
+        push!(units_2D, units[varnames[i]])
     elseif varnames[i] in composite_vars
         push!(vars_C, varnames[i])
         push!(labels_C, varlabels[i])
@@ -90,14 +103,14 @@ if ~isempty(vars_1D)    # Check
         if ~isfile(locdata*expnames[j]*"/yelmo_killed.nc")
             data_array_1D[i, j, :] = ncread(locdata*expnames[j]*"/yelmo1D.nc", vars_1D[i])
         else
-            continue
+            data_array_1D[i, j, :] .= Inf
         end
     end
 
     # Plot
     xlab, ylab = "Time ("*units_time*")", labels_1D.*" (".*units_1D.*")"
     figure_size = (800*layout_1D[1], 600*layout_1D[2])  
-    plot_name_1D = locplot*plot_name*"_p1D.png"
+    plot_name_1D = locplot*"1D_"*plot_name*".png"
     plot_lines(time_data, data_array_1D, xlab, ylab, colors, lstyles, lwidths, explabels,
                          lyout=layout_1D, fgsz=figure_size, fntsz=nothing, ptsv=plot_name_1D)
     display("1D variables plotted")
@@ -142,10 +155,20 @@ if ~isempty(vars_2D) # Check
 end
 if ~isempty(vars_C)
     for v in vars_C
-        if v == "difH_grnd"
+        if v == "SLR"
+            include("../src/ice_SLR-plots.jl")
+            calc_and_plot_SLR(locdata, expnames, explabels, colors, lstyles, lwidths, units_time, layout_1D, locplot, plot_name)
+            display("SLR plotted")
+        end
+        if v == "diffH_grnd"
             include("../src/ice_dif-plots.jl")
-            calc_and_plot_difH_grnd(locdata, expnames, xpars, ypars, times2D, layout_2D,locplot, plot_name)
-            display("difH_grnd plotted")
+            calc_and_plot_diffH_grnd(locdata, expnames, xpars, ypars, times2D, layout_2D,locplot, plot_name)
+            display("diffH_grnd plotted")
+        end
+        if v == "diffuxy_s"
+            include("../src/ice_dif-plots.jl")
+            calc_and_plot_diffuxy_s(locdata, expnames, xpars, ypars, times2D, layout_2D,locplot, plot_name)
+            display("diffuxy_s plotted")
         end
     end
 end

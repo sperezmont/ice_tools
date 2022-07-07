@@ -19,12 +19,14 @@ include("../src/ice_plots.jl")
 # User parameters
 locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/taubc_01/"        # path to save plots
 locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/taubc_01/"        # path to locate the data
-expnames = [["abuc_fbc0", "abum-mod_fbc0", "abum_fbc0", "abuk_fbc0"],
-            ["abuc_fbco", "abum-mod_fbco", "abum_fbco", "abuk_fbco"]]       # vector with the names of the experiments divided [[set 1], [set 2]]
+expnames = [["abuc_mbcs", "abum-mod_mbcs", "abum_mbcs", "abuk_mbcs"],
+            ["abuc_mbc0", "abum-mod_mbc0", "abum_mbc0", "abuk_mbc0"]]       # vector with the names of the experiments divided [[set 1], [set 2]]
 
 xpars, ypars = ["ABUC", "ABUM-mod", "ABUM", "ABUK"],              # vector with x and y labels for par vs par plot
-               ["zero - ocean"]
-plot_name = "taubc_01f_0-o"
+               ["ice+ocean - zero"]
+plot_name = "taubc_01m_s-0"
+
+levels2use = -2500:100:2500
 
 #### SCRIPT ####
 # Load
@@ -49,15 +51,21 @@ for i in 1:length(expnames), j in 1:length(expnames[1])
 end
 diff_array = replace!(diff_array, NaN=>0)
 
+m_array[m_array .== 0] .= NaN
 mask_array = m_array[1, :, :, :] + m_array[2, :, :, :]
+mask_array = replace!(mask_array, NaN=>0)
 
 # Plots
-n2approx = 500
-min_lvl, max_lvl = round(Int, minimum(diff_array)/n2approx)*n2approx, round(Int, maximum(diff_array)/n2approx)*n2approx
-distance, boundary = Int(max_lvl - min_lvl), max(abs(max_lvl), abs(min_lvl))
-step = max(1, round(Int, 0.05*boundary/n2approx))*n2approx
-(min_lvl*max_lvl >= 0) ? (levels2D = min_lvl:step:max_lvl) : (levels2D = -boundary:step:boundary) # Check if symmetric
-(min_lvl*max_lvl >= 0) && (levels2D = round.(Int, levels2D))
+if levels2use == []
+    n2approx = 100
+    min_lvl, max_lvl = round(Int, minimum(diff_array)/n2approx)*n2approx, round(Int, maximum(diff_array)/n2approx)*n2approx
+    distance, boundary = Int(max_lvl - min_lvl), max(abs(max_lvl), abs(min_lvl))
+    step = max(1, round(Int, 0.05*boundary/n2approx))*n2approx
+    (min_lvl*max_lvl >= 0) ? (levels2D = min_lvl:step:max_lvl) : (levels2D = -boundary:step:boundary) # Check if symmetric
+    (min_lvl*max_lvl >= 0) && (levels2D = round.(Int, levels2D))
+else
+    levels2D = levels2use
+end
 
 d_array = replace!(d_array, NaN=>0)
 for i in 1:length(expnames), j in 1:length(expnames[1])
@@ -68,6 +76,6 @@ end
 diff_array[mask_array .== 0] .= -9999999999 # Just to deal with ocean
 
 figure_size = (800*length(xpars), 750*length(ypars))  
-plot_multivar(diff_array, xpars, ypars, "Difference H_grnd (m)", levels2D, clrmp=:balance, fgsz=figure_size, ptsv=locplot*"setDiffs_"*plot_name*".png", cont=mask_array, cont_lvls=[0])
+plot_multivar(diff_array, xpars, ypars, "H_ice (diff., m)", levels2D, clrmp=:balance, fgsz=figure_size, ptsv=locplot*"setDiffs_"*plot_name*".png", cont=mask_array, cont_lvls=[0])
 
 

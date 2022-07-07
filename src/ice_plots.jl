@@ -40,7 +40,7 @@ using ColorSchemes
     """
 function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; lyout=(1, 1), fgsz=(800, 600), fntsz=nothing, ptsv="./plot_lines.png")
     # Check fntsz and theming
-    isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
+    isnothing(fntsz) && (fntsz = 0.025 * sqrt(fgsz[1]^2 + fgsz[2]^2)) # isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
     fontsize_theme = Theme(font="Dejavu Serif", fontsize=fntsz)
     set_theme!(fontsize_theme)
 
@@ -61,7 +61,7 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; lyout=(
     p = 1
     for i in 1:nrows, j in 1:ncols
         ax = Axis(fig[i, j], grid=true,
-            xlabelsize=0.9*fntsz, ylabelsize=0.9*fntsz,
+            xlabelsize=fntsz, ylabelsize=fntsz,
             xlabel=xname, ylabel=yname[p])
         update_theme!()
         min_vs, max_vs = [], []
@@ -82,7 +82,7 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; lyout=(
         end
         p = p + 1
 
-        Legend(fig[1, end+1], ax, framevisible=false, labelsize=0.7*fntsz)
+        Legend(fig[1, end+1], ax, framevisible=false, labelsize=0.8*fntsz)
         miny, maxy = minimum(min_vs), maximum(max_vs)
         limits!(ax, x[1], x[end], miny, maxy) 
 
@@ -121,7 +121,7 @@ end
     """
 function plot_maps(y, x, data, xname, yname, varname, lvls, lbls; log_scale=false, clrmp=:thermal, lyout=(1, 1), fgsz=(800, 600), fntsz=nothing, ptsv="./plot_maps.png", hide_axis=false)
     # Check fntsz and theming
-    isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
+    isnothing(fntsz) && (fntsz = 0.02 * sqrt(fgsz[1]^2 + fgsz[2]^2)) #isnothing(fntsz) && (fntsz = 0.02 * min(fgsz[1], fgsz[2]))
     fontsize_theme = Theme(font="Dejavu Serif", fontsize=fntsz)
     set_theme!(fontsize_theme)
 
@@ -129,13 +129,15 @@ function plot_maps(y, x, data, xname, yname, varname, lvls, lbls; log_scale=fals
     if log_scale    # By: Jan Swierczek-Jereczek 
         data2plot = log10.(data.+ 1e-8) # to deal with zeros
         new_lvls = [10.0^i for i in [-2, -1, 0, 1, 2, 3, 4]]
-        ticks_val = log10.(new_lvls)
+        new_lvls = log10.(new_lvls)
+        ticks_val = copy(new_lvls)
         ticks_str = string.([L"$0$", L"$0.1$", L"$1$",
                              L"$10$", L"$100$", L"$1000$", L"$10000$"])   # Here we can even write by hand a nicer string that has exponents
     else
         data2plot = copy(data)
-        ticks_val = copy(lvls)
-        ticks_str = string.(lvls)
+        new_lvls = copy(lvls)
+        ticks_val = new_lvls[1:round(Int, length(new_lvls)/5):end]
+        ticks_str = string.(ticks_val)
     end
 
     # Create figure and layout
@@ -158,17 +160,17 @@ function plot_maps(y, x, data, xname, yname, varname, lvls, lbls; log_scale=fals
         hide_axis && hidedecorations!(ax)
         if ndims(data) == 2
             if ~all(y->y in [0, -8, -9999], data2plot)
-                c = contourf!(ax, x, y, data2plot, levels=ticks_val, colormap=clrmp)
+                c = contourf!(ax, x, y, data2plot, levels=new_lvls, colormap=clrmp)
                 push!(maps, c)
             end
         elseif ndims(data) == 3
             if ~all(y->y in [0, -8, -9999], data2plot[p, :, :])
-                c = contourf!(ax, x, y, data2plot[p, :, :], levels=ticks_val, colormap=clrmp)
+                c = contourf!(ax, x, y, data2plot[p, :, :], levels=new_lvls, colormap=clrmp)
                 push!(maps, c)
             end
         end
         p = p + 1
-        (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.5*fntsz, ticks=(ticks_val, ticks_str)))
+        (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.8*fntsz, ticks=(ticks_val, ticks_str)))
     end
     
     # Resizing
@@ -198,7 +200,7 @@ end
     """
 function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clrmp=:thermal, fgsz=(800, 600), fntsz=nothing, ptsv="./plot_multivar.png", cont=[], cont_lvls=[])
     # Check fntsz and theming
-    isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
+    isnothing(fntsz) && (fntsz = 0.02 * sqrt(fgsz[1]^2 + fgsz[2]^2)) #isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
     fontsize_theme = Theme(font="Dejavu Serif", fontsize=fntsz)
     set_theme!(fontsize_theme)
 
@@ -206,12 +208,14 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
     if log_scale    # By: Jan Swierczek-Jereczek 
         data2plot = log10.(data.+ 1e-8) # to deal with zeros
         new_lvls = [10.0^i for i in [-2, -1, 0, 1, 2, 3, 4]]
-        ticks_val = log10.(new_lvls)
+        new_lvls = log10.(new_lvls)
+        ticks_val = copy(new_lvls)
         ticks_str = string.([L"$0$", L"$0.1$", L"$1$",
                                 L"$10$", L"$100$", L"$1000$", L"$10000$"])   # Here we can even write by hand a nicer string that has exponents
     else
         data2plot = copy(data)
-        ticks_val = copy(lvls)
+        new_lvls = copy(lvls)
+        ticks_val = new_lvls[1:round(Int, length(new_lvls)/5):end]
         ticks_str = string.(ticks_val)
     end
 
@@ -224,18 +228,18 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
     for i in 1:nrows, j in 1:ncols
         if j == 1
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, ylabel=ynames[i], xlabel=xnames[j])
+                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, ylabel=ynames[i])
+                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
                 update_theme!()
             end
         else
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz, xlabel=xnames[j])
+                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=0.7*fntsz, ylabelsize=0.7*fntsz)
+                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz)
                 update_theme!()
             end
         end
@@ -244,18 +248,18 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
         
         if ~all(y->y in [0, -8, -9999], data2plot)
             try
-                c = contourf!(ax, data2plot[p, :, :], levels=ticks_val, colormap=clrmp)
+                c = contourf!(ax, data2plot[p, :, :], levels=new_lvls, colormap=clrmp)
                 push!(maps, c)
                 (cont != []) && contour!(ax, cont[p, :, :], levels=cont_lvls, color="black", linewidth=2)
             catch
                 (cont != []) && contour!(ax, cont[p, :, :], levels=cont_lvls, color="black", linewidth=2)
                 p = p + 1
-                (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.5*fntsz, ticks=(ticks_val, ticks_str)))
+                (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.8*fntsz, ticks=(ticks_val, ticks_str)))
                 continue
             end
         end
 
-        (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.5*fntsz, ticks=(ticks_val, ticks_str)))
+        (i * j == nrows * ncols) && (Colorbar(fig[:, end+1], maps[end], height=Relative(2 / 3), width=30, label=varname, ticklabelsize=0.8*fntsz, ticks=(ticks_val, ticks_str)))
         p = p + 1
     end
 

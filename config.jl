@@ -15,10 +15,8 @@ Pkg.activate("ice_env")
 # Adding dependencies ... 
 ## ice_calcs
 
-## ice_loadf
-Pkg.add("NetCDF")
-
 ## ice_plots
+Pkg.add("NetCDF")
 Pkg.add("CairoMakie")
 Pkg.add("ColorSchemes")
 

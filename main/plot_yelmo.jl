@@ -16,38 +16,38 @@ include("../src/ice_calcs.jl")
 include("../src/ice_plots.jl")
 
 # User parameters
-locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/taubc_01/"        # path to save plots
-locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/taubc_01/"        # path to locate the data
-expnames = ["abuc_mbc0", "abum-mod_mbc0", "abum_mbc0", "abuk_mbc0",
-    "abuc_mbch", "abum-mod_mbch", "abum_mbch", "abuk_mbch",
-    "abuc_mbco", "abum-mod_mbco", "abum_mbco", "abuk_mbco",
-    "abuc_mbcs", "abum-mod_mbcs", "abum_mbcs", "abuk_mbcs"]       # vector with the names of the experiments
-explabels = ["abuc m0", "abum-mod m0", "abum m0", "abuk m0",
-    "abuc mh", "abum-mod mh", "abum mh", "abuk mh",
-    "abuc mo", "abum-mod mo", "abum mo", "abuk mo",
-    "abuc ms", "abum-mod ms", "abum ms", "abuk ms"]      # vector with the names you want to show (nothing/label)
+locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/taubc_03/"        # path to save plots
+locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/taubc_03/"        # path to locate the data
+expnames = ["abuc_fbc0", "abum-mod_fbc0", "abum_fbc0", "abuk_fbc0",
+            "abuc_fbch", "abum-mod_fbch", "abum_fbch", "abuk_fbch",
+            "abuc_fbco", "abum-mod_fbco", "abum_fbco", "abuk_fbco",
+            "abuc_fbcs", "abum-mod_fbcs", "abum_fbcs", "abuk_fbcs",]       # vector with the names of the experiments
+explabels = ["ABUC, zero", "ABUM-mod, zero", "ABUM, zero", "ABUK, zero",
+            "ABUC, ice", "ABUM-mod, ice", "ABUM, ice", "ABUK, ice",
+            "ABUC, ocean", "ABUM-mod, ocean", "ABUM, ocean", "ABUK, ocean",
+            "ABUC, ice+ocean", "ABUM-mod, ice+ocean", "ABUM, ice+ocean", "ABUK, ice+ocean"]      # vector with the names you want to show (nothing/label)
 xpars, ypars = ["ABUC", "ABUM-mod", "ABUM", "ABUK"],              # vector with x and y labels mor par vs par plot
-["zero", "ice", "ocean", "ice+ocean"]
+               ["zero", "ice", "ocean", "ice+ocean"]
+plot_name = "taubc_03f"
 
-
-varnames = ["SLR"] #, "diffH_grnd", "diffuxy_s"]       # vector with variables to plot 
+varnames = ["SLR", "diffH_ice", "diffuxy_s"]       # vector with variables to plot 
 units_time = "yrs"
 times2D = "end" # "end"/index
 
-plot_name = "taubc_01m"
 colors, lstyles, lwidths = repeat(["red", "blue", "green", "purple"], 4),
-[repeat([:solid], 4); repeat([:dash], 4); repeat([:dot], 4); repeat([:dashdot], 4)],
-repeat([3], 16)
-layout_1D, layout_2D = (1, 1), (4, 4)
+                            [repeat([:dot], 4); repeat([:dash], 4); repeat([:dashdot], 4); repeat([:solid], 4)],
+                            repeat([2], 16)
+layout_2D = (4, 4)
 
 #### SCRIPT ####
 println("Plotting " * plot_name)
-yelmo1D_vars = ["V_sle"]
+yelmo1D_vars = ["V_sle", "A_ice"]
 yelmo2D_vars = ["H_ice", "H_grnd", "z_srf", "uxy_s"]
-composite_vars = ["SLR", "diffH_grnd", "diffuxy_s"]
+composite_vars = ["SLR", "diffH_ice", "diffuxy_s"]
 
-clrmps = Dict("H_ice" => :Blues, "H_grnd" => :curl, "z_srf" => :dense, "uxy_s" => :rainbow)
-units = Dict("H_ice" => "m", "H_grnd" => "m", "z_srf" => "m", "uxy_s" => "m/a")
+clrmps = Dict("H_ice" => :Blues, "H_grnd" => :curl, "z_srf" => :dense, "uxy_s" => :BuPu_7)
+units = Dict("V_sle" => "m SLE", "A_ice" => "1e6 km^2",
+             "H_ice" => "m", "H_grnd" => "m", "z_srf" => "m", "uxy_s" => "m/a")
 
 # Check if paths exist 
 isdir(locplot) || throw(ErrorException(string(locplot, " does not exist")))
@@ -97,42 +97,42 @@ end
 
 # Check, load and plot
 if ~isempty(vars_1D)    # Check
-    # Load
-    time_data = ncread(locdata * expnames[1] * "/yelmo1D.nc", "time")
-    data_array_1D = zeros(length(vars_1D), length(expnames), length(time_data))
-    for i in 1:length(vars_1D), j in 1:length(expnames)
-        if ~isfile(locdata * expnames[j] * "/yelmo_killed.nc")
-            data_array_1D[i, j, :] = ncread(locdata * expnames[j] * "/yelmo1D.nc", vars_1D[i])
-        else
-            data_array_1D[i, j, :] .= Inf
+    for v in 1:length(vars_1D)
+        # Load
+        time_data = ncread(locdata * expnames[1] * "/yelmo1D.nc", "time")
+        data_array_1D = zeros(length(expnames), length(time_data))
+        for j in 1:length(expnames)
+            if ~isfile(locdata * expnames[j] * "/yelmo_killed.nc")
+                data_array_1D[j, :] = ncread(locdata * expnames[j] * "/yelmo1D.nc", vars_1D[v])
+            else
+                data_array_1D[j, :] .= Inf
+            end
         end
-    end
 
-    # Plot
-    xlab, ylab = "Time (" * units_time * ")", labels_1D .* " (" .* units_1D .* ")"
-    figure_size = (800 * layout_1D[1], 600 * layout_1D[2])
-    plot_name_1D = locplot * "1D_" * plot_name * ".png"
-    plot_lines(time_data, data_array_1D, xlab, ylab, colors, lstyles, lwidths, explabels,
-        lyout=layout_1D, fgsz=figure_size, fntsz=nothing, ptsv=plot_name_1D)
-    display("1D variables plotted")
+        # Plot
+        xlab, ylab = "Time (" * units_time * ")", labels_1D[v] .* " (" .* units_1D[v] .* ")"
+        plot_name_1D = locplot * vars_1D[v] * "_" * plot_name * ".png"
+        plot_lines(time_data, data_array_1D, xlab, ylab, colors, lstyles, lwidths, explabels,
+                   fntsz=nothing, ptsv=plot_name_1D)
+        display(vars_1D[v] * " plotted")
+    end
 end
 if ~isempty(vars_2D) # Check
     # Load
     yaxis, xaxis = ncread(locdata * expnames[1] * "/yelmo2D.nc", "yc"), ncread(locdata * expnames[1] * "/yelmo2D.nc", "xc")
     for v in 1:length(vars_2D)
         data_array_2D = zeros(length(expnames), length(yaxis), length(xaxis))
+        contour_array_2D = zeros(length(expnames), length(yaxis), length(xaxis))
         for i in 1:length(expnames)
             if times2D == "end"
                 if ~isfile(locdata * expnames[i] * "/yelmo_killed.nc")
                     data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, end]
-                else
-                    replace!(data_array_2D[i, :, :], 0 => Inf)
+                    contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, end]
                 end
             else
                 if ~isfile(locdata * expnames[i] * "/yelmo_killed.nc")
                     data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, times2D]
-                else
-                    replace!(data_array_2D[i, :, :], 0 => Inf)
+                    contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, times2D]
                 end
             end
         end
@@ -150,7 +150,7 @@ if ~isempty(vars_2D) # Check
         figure_size = (800 * layout_2D[2], 750 * layout_2D[1])
         plot_name_2D = locplot * vars_2D[v] * "_" * plot_name * ".png"
         plot_maps(yaxis, xaxis, data_array_2D, xlab, ylab, labels_2D[v] * " (" * units_2D[v] * ")", levels2D, explabels,
-            log_scale=ifuxy, clrmp=clrmps[vars_2D[v]], lyout=layout_2D, fgsz=figure_size, fntsz=nothing, ptsv=plot_name_2D, hide_axis=true)
+            log_scale=ifuxy, clrmp=clrmps[vars_2D[v]], lyout=layout_2D, fgsz=figure_size, fntsz=nothing, ptsv=plot_name_2D, hide_axis=true, cont=contour_array_2D, cont_lvls=[0, 3])
         display("$(vars_2D[v]) plotted")
     end
 end
@@ -158,13 +158,13 @@ if ~isempty(vars_C)
     for v in vars_C
         if v == "SLR"
             include("../src/ice_SLR-plots.jl")
-            calc_and_plot_SLR(locdata, expnames, explabels, colors, lstyles, lwidths, units_time, layout_1D, locplot, plot_name)
+            calc_and_plot_SLR(locdata, expnames, explabels, colors, lstyles, lwidths, units_time, locplot, plot_name)
             display("SLR plotted")
         end
-        if v == "diffH_grnd"
+        if v == "diffH_ice"
             include("../src/ice_dif-plots.jl")
-            calc_and_plot_diffH_grnd(locdata, expnames, xpars, ypars, times2D, layout_2D, locplot, plot_name)
-            display("diffH_grnd plotted")
+            calc_and_plot_diffH_ice(locdata, expnames, xpars, ypars, times2D, layout_2D, locplot, plot_name)
+            display("diffH_ice plotted")
         end
         if v == "diffuxy_s"
             include("../src/ice_dif-plots.jl")

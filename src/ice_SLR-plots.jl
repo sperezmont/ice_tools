@@ -11,7 +11,7 @@ include("../src/ice_calcs.jl")
 include("../src/ice_plots.jl")
 
 # calc_and_plot_SLR
-function calc_and_plot_SLR(path2files, file_names, file_labels, cs, lss, lws, time_units, layout2plot, path2save, plot2save)
+function calc_and_plot_SLR(path2files, file_names, file_labels, cs, lss, lws, time_units, path2save, plot2save)
 
     # Load
     time_data = ncread(path2files * file_names[1] * "/yelmo1D.nc", "time")
@@ -29,9 +29,8 @@ function calc_and_plot_SLR(path2files, file_names, file_labels, cs, lss, lws, ti
     slr_array = replace!(slr_array, NaN => Inf)
 
     # Plot
-    xlab, ylab = "Time (" * time_units * ")", ["SLR (m SLE)"]
-    figure_size = (800 * layout2plot[1], 600 * layout2plot[2])
+    xlab, ylab = "Time (" * time_units * ")", "SLR (m SLE)"
     plot2save = path2save * "SLR_" * plot2save * ".png"
     plot_lines(time_data, slr_array, xlab, ylab, cs, lss, lws, file_labels,
-        fgsz=figure_size, fntsz=nothing, ptsv=plot2save)
+               fntsz=nothing, ptsv=plot2save)
 end

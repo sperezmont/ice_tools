@@ -19,11 +19,11 @@ using ColorSchemes
 
 #-- plot_lines
 @doc """
-        Aim: Plots 1D data in different panels                                  
+        Aim: Plots 1D data                                 
         Parameters
         ----------                                                              
-        x              -> 1D vector                                             
-        data           -> 2D array, [nseries, nx]            
+        x              -> list (with each x series)                                            
+        data           -> list, [nseries, nx]            
         xname          -> string                                                
         yname          -> vector with strings, one for each panel               
         clrs           -> vector with colornames or colormaps, one for each series
@@ -33,12 +33,11 @@ using ColorSchemes
 
         Optional
         ----------
-        lyout          -> layout, (nrows, ncols)
         fgsz           -> figure size, tuple
         fntsz          -> font size
         ptsv           -> path/name to save plot
     """
-function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; fgsz=(800, 600), fntsz=nothing, ptsv="./plot_lines.png")
+function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; ylimits=[], xlimits=[], fgsz=(800, 600), fntsz=nothing, ptsv="./plot_lines.png")
     # Check fntsz and theming
     isnothing(fntsz) && (fntsz = 0.025 * sqrt(fgsz[1]^2 + fgsz[2]^2)) # isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
     fontsize_theme = Theme(font="Dejavu Serif", fontsize=fntsz)
@@ -46,11 +45,6 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; fgsz=(8
 
     # Create figure and layout
     fig = Figure(resolution=fgsz)
-    if ndims(data) == 1
-        nseries, nx = 1, size(data)
-    elseif ndims(data) == 2
-        nseries, nx = size(data)
-    end
 
     # Plotting
     ax = Axis(fig[1, 1], grid=true,
@@ -58,21 +52,26 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; fgsz=(8
         xlabel=xname, ylabel=yname)
     update_theme!()
     min_vs, max_vs = [], []
-    for k in 1:nseries
-        if ndims(data) == 1
-            all(y -> y == Inf, data) || lines!(ax, x, data, color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
-            all(y -> y == Inf, data) || (push!(min_vs, minimum(data)))
-            all(y -> y == Inf, data) || (push!(max_vs, maximum(data)))
-        elseif ndims(data) == 2
-            all(y -> y == Inf, data[k, :]) || lines!(ax, x, data[k, :], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
-            all(y -> y == Inf, data[k, :]) || (push!(min_vs, minimum(data[k, :])))
-            all(y -> y == Inf, data[k, :]) || (push!(max_vs, maximum(data[k, :])))
-        end
+    for k in 1:length(data)
+        all(y -> y == Inf, data[k]) || lines!(ax, x[k], data[k], color=clrs[k], linestyle=lnstls[k], linewidth=lnswdths[k], label=lbls[k])
+        all(y -> y == Inf, data[k]) || (push!(min_vs, minimum(data[k])))
+        all(y -> y == Inf, data[k]) || (push!(max_vs, maximum(data[k])))
     end
-
-    Legend(fig[1, 2], ax, framevisible=false, labelsize=0.8 * fntsz)
-    miny, maxy = minimum(min_vs), maximum(max_vs)
-    limits!(ax, x[1], x[end], miny, maxy)
+    
+    if length(lbls) != 1  
+        Legend(fig[1, 2], ax, framevisible=false, labelsize=0.8 * fntsz)
+    end
+    if ylimits == []
+        miny, maxy = minimum(min_vs), maximum(max_vs)
+    else
+        miny, maxy = ylimits
+    end
+    if xlimits == []
+        minx, maxx = x[1], x[end]
+    else
+        minx, maxx = xlimits
+    end
+    limits!(ax, minx, maxx, miny, maxy)
 
     # Resizing
     resize_to_layout!(fig)
@@ -177,7 +176,7 @@ end
         Aim: Plots 2D data as a function of two variables/parameters                                
         Parameters
         ----------                                                              
-        data           -> 3D array, [nvariables, ny, nx]            
+        data           -> 3D array, [nexps, ny, nx]            
         xnames         -> string vector with values and names of each column (min --> max)                                                
         ynames         -> string vector with values and names of each row (min --> max)
         varname        -> variable name            
@@ -190,11 +189,15 @@ end
         fntsz          -> font size
         ptsv           -> path/name to save plot
     """
-function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clrmp=:thermal, fgsz=(800, 600), fntsz=nothing, ptsv="./plot_multivar.png", cont=[], cont_lvls=[])
+function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clrmp=:thermal, fgsz=(800, 600), fntsz=nothing, ptsv="./plot_multivar.png", cont=[], cont_lvls=[], lbls=[])
     # Check fntsz and theming
     isnothing(fntsz) && (fntsz = 0.02 * sqrt(fgsz[1]^2 + fgsz[2]^2)) #isnothing(fntsz) && (fntsz = 0.05 * min(fgsz[1], fgsz[2]))
     fontsize_theme = Theme(font="Dejavu Serif", fontsize=fntsz)
     set_theme!(fontsize_theme)
+
+    if lbls == []
+        lbls = repeat([""], size(data)[1])
+    end
 
     # Check log scale 
     if log_scale    # By: Jan Swierczek-Jereczek 
@@ -220,18 +223,18 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
     for i in 1:nrows, j in 1:ncols
         if j == 1
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
+                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
+                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
                 update_theme!()
             end
         else
             if i == nrows
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
+                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], xlabelsize=fntsz, ylabelsize=fntsz)
+                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz)
                 update_theme!()
             end
         end

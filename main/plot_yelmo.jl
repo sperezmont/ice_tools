@@ -16,32 +16,36 @@ include("../src/ice_calcs.jl")
 include("../src/ice_plots.jl")
 
 # User parameters
-locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/dtt_02/"           # path to locate the data
-locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/dtt_02/"                                         # path to save plots
-expnames = ["dtt_02_akad0.1", "dtt_02_akad0.5", "dtt_02_akad0.8", "dtt_02_akad1.0",
-            "dtt_02_akmd0.1", "dtt_02_akmd0.5", "dtt_02_akmd0.8", "dtt_02_akmd1.0",
-            "dtt_02_akfd0.1", "dtt_02_akfd0.5", "dtt_02_akfd0.8", "dtt_02_akfd1.0"]       # vector with the names of the experiments
+locdata = "/home/sergio/entra/models/yelmo_vers/v1.753_sergio-test/yelmox/output/ismip6/d03_LateralBC/ismip6_dtt_01/"           # path to locate the data
+locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/ismip6_dtt_01/"                                         # path to save plots
+expnames = ["ctrl_m", "ctrl_md0.1", "ctrl_md0.5", "ctrl_md1.0",
+            #"exp05_m", "exp05_md0.1", "exp05_md0.5", "exp05_md1.0",
+            #"exp09_m", "exp09_md0.1", "exp09_md0.5", "exp09_md1.0",
+            #"exp10_m", "exp10_md0.1", "exp10_md0.5", "exp10_md1.0",
+            ]#"exp13_m", "exp13_md0.1", "exp13_md0.5", "exp13_md1.0"]       # vector with the names of the experiments
 explabels = copy(expnames)     # vector with the names you want to show (nothing/label)
-xpars, ypars = ["dtt = 0.1", "dtt = 0.5", "dtt = 0.8", "dtt = 1.0"],              # vector with x and y labels mor par vs par plot
-                ["ALL", "MARINE", "FLOATING"]
-plot_name = "dtt_02_abuk"
+xpars, ypars = ["m", "md0.1", "md0.5", "md1.0"],              # vector with x and y labels mor par vs par plot
+                ["ctrl", "exp05", "exp09", "exp10", "exp13"]
+plot_name = "v1.753_sergio-test_ismip6_dtt_01-ctrl_m"
 
-varnames = ["SLR"]      # vector with variables to plot, if ["all"] it will plot all the implemented variables 
-units_time = "yrs"
-times2D = "end" # "end"/index
+varnames = ["convergence"]      # vector with variables to plot, if ["all"] it will plot all the implemented variables 
+units_time = ""
+times2D = [201-190, "end"] # [initial index, "end"/index] the first element is to compare plots
 
-colors, lstyles, lwidths = [repeat(["red"], 4); repeat(["blue"], 4); repeat(["green"], 4)], repeat([:dash, :solid, :dot, :dashdot], 3), repeat([3], 24)
-layout_2D = (3, 4) # rows, cols
+colors, lstyles, lwidths = [:black, :blue, :green, :red],repeat([:solid],5), repeat([2], 25)
+layout_2D = (1, 4) # rows, cols
 
 # Some implemented variables and dictionaries
 yelmo1D_vars = ["V_sle", "A_ice", "dHicedt"]
 yelmo2D_vars = ["H_ice", "H_grnd", "z_srf", "uxy_s", "pc_tau_max"]
-composite_vars = ["SLR", "diffH_ice", "diffuxy_s"]
+composite_vars = ["SLR", "diffH_ice", "diffuxy_s", "convergence", "correspondence"]
 
-var1D_ylimits = Dict("V_sle" => [35, 57], "A_ice" => [7, 15], "dHicedt" => [-30, 30])
-var1D_xlimits = [0, 500]    # set to [] if you don't want a predefined
+conv_idx2cmpare = 1 # default index to compare with in convergence calculations
+
+var1D_ylimits = Dict("V_sle" => [], "A_ice" => [7, 15], "dHicedt" => [-30, 30])
+var1D_xlimits = [1900, 2500] #[0, 30000]    # set to [] if you don't want a predefined
 var2D_levels = Dict("H_ice" => 0:100:4500, "H_grnd" => -4500:200:4500, "z_srf" => 0:100:4500, "uxy_s" => 0:10:1e4, "pc_tau_max" => 0:0.1:4)
-composite_levels = Dict("SLR" => [0, 35], "diffH_ice" => -1000:100:1000, "diffuxy_s" => -1000:100:1000)
+composite_levels = Dict("SLR" => [-0.5, 2.5], "diffH_ice" => -1000:100:1000, "diffuxy_s" => -500:20:500, "convergence" => [-0.1, 0.4], "correspondence" => [-0.5, 1.5])
 clrmps = Dict("H_ice" => :Blues, "H_grnd" => :curl, "z_srf" => :dense, "uxy_s" => :BuPu_7, "pc_tau_max" => :matter)
 units = Dict("V_sle" => "m SLE", "A_ice" => "1e6 km^2", "dHicedt" => "m/a",
     "H_ice" => "m", "H_grnd" => "m", "z_srf" => "m", "uxy_s" => "m/a", "pc_tau_max" => "m/a")
@@ -59,6 +63,8 @@ isdir(locdata) || throw(ErrorException(string(locdata, " does not exist")))
 ## Load
 # Check variables to plot, then load them
 (varnames[1] == "all") && (varnames = [yelmo1D_vars; yelmo2D_vars; composite_vars])
+(varnames[1] == "composite") && (varnames = composite_vars)
+
 varlabels = copy(varnames)
 
 yelmo_file = String[]
@@ -91,10 +97,14 @@ if ~isempty(vars_1D)    # Check
             push!(data_array_1D, ncread(locdata * expnames[j] * "/yelmo1D.nc", vars_1D[v]))
             push!(time_data, ncread(locdata * expnames[j] * "/yelmo1D.nc", "time"))
         end
-        xlab, ylab = "Time (" * units_time * ")", labels_1D[v] .* " (" .* units_1D[v] .* ")"
+        if units_time == ""
+            xlab, ylab = "", labels_1D[v] .* " (" .* units_1D[v] .* ")"
+        else
+            xlab, ylab = "Time (" * units_time * ")", labels_1D[v] .* " (" .* units_1D[v] .* ")"
+        end
         plot_name_1D = locplot * vars_1D[v] * "_" * plot_name * ".png"
         plot_lines(time_data, data_array_1D, xlab, ylab, colors, lstyles, lwidths, explabels, ylimits=var1D_ylimits[vars_1D[v]], xlimits=var1D_xlimits,
-                fntsz=nothing, ptsv=plot_name_1D)
+            fntsz=nothing, ptsv=plot_name_1D)
         display(vars_1D[v] * " plotted")
     end
 end
@@ -106,25 +116,29 @@ if ~isempty(vars_2D) # Check
         contour_array_2D = zeros(length(expnames), length(yaxis), length(xaxis))
         time_labels = String[]
         for i in 1:length(expnames)
-            if times2D == "end"
+            if times2D[2] == "end"
                 data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, end]
                 contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, end]
                 time_lbl = ncread(locdata * expnames[i] * "/yelmo2D.nc", "time")[end]
             else
                 try
-                    data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, times2D]
-                    contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, times2D]
-                    time_lbl = ncread(locdata * expnames[i] * "/yelmo2D.nc", "time")[times2D]
+                    data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, times2D[2]]
+                    contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, times2D[2]]
+                    time_lbl = ncread(locdata * expnames[i] * "/yelmo2D.nc", "time")[times2D[2]]
                 catch
                     data_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", vars_2D[v])[:, :, end]
                     contour_array_2D[i, :, :] = ncread(locdata * expnames[i] * "/yelmo2D.nc", "mask_bed")[:, :, end]
                     time_lbl = ncread(locdata * expnames[i] * "/yelmo2D.nc", "time")[end]
                 end
             end
-            push!(time_labels, ", t = " * string(round(Int, time_lbl)) * "yrs")
+            if units_time == ""
+                push!(time_labels, ", t = " * string(round(Int, time_lbl)))
+            else
+                push!(time_labels, ", t = " * string(round(Int, time_lbl)) * units_time)
+            end
         end
         # Now we modify title labels
-        explabels2plot = explabels.*time_labels
+        explabels2plot = explabels .* time_labels
 
         # Plot
         if var2D_levels[vars_2D[v]] == []
@@ -151,18 +165,30 @@ if ~isempty(vars_C)
     for v in vars_C
         if v == "SLR"
             include("../src/ice_SLR-plots.jl")
-            calc_and_plot_SLR(locdata, expnames, explabels, colors, lstyles, lwidths, units_time, locplot, plot_name, ylimits=composite_levels["SLR"], xlimits=var1D_xlimits)
+            plot_SLR(locdata, expnames, explabels, colors, lstyles, lwidths, units_time, locplot, plot_name, ylimits=composite_levels["SLR"], xlimits=var1D_xlimits)
             display("SLR plotted")
         end
         if v == "diffH_ice"
             include("../src/ice_dif-plots.jl")
-            calc_and_plot_diffH_ice(locdata, expnames, xpars, ypars, times2D, layout_2D, locplot, plot_name, lvls2plot=composite_levels["diffH_ice"])
+            calc_and_plot_diffH_ice(locdata, expnames, xpars, ypars, times2D, units_time, layout_2D, locplot, plot_name, lvls2plot=composite_levels["diffH_ice"])
             display("diffH_ice plotted")
         end
         if v == "diffuxy_s"
             include("../src/ice_dif-plots.jl")
-            calc_and_plot_diffuxy_s(locdata, expnames, xpars, ypars, times2D, layout_2D, locplot, plot_name, lvls2plot=composite_levels["diffuxy_s"])
+            calc_and_plot_diffuxy_s(locdata, expnames, xpars, ypars, times2D, units_time, layout_2D, locplot, plot_name, lvls2plot=composite_levels["diffuxy_s"])
             display("diffuxy_s plotted")
+        end
+        if v == "convergence"   # this part takes into account the number of 2D rows as number of clusters and ncols as mebers of each cluster
+            include("../src/ice_dif-plots.jl")
+            nclust, nmemb = layout_2D
+            calc_plot_convergence(locdata, expnames, explabels, conv_idx2cmpare, nclust, nmemb, colors, lstyles, lwidths, units_time, locplot, plot_name, ylimits=composite_levels["convergence"], xlimits=var1D_xlimits)
+            display("convergence plotted")
+        end
+        if v == "correspondence"   # this part takes into account the number of 2D rows as number of clusters and ncols as mebers of each cluster
+            include("../src/ice_dif-plots.jl")
+            nclust, nmemb = layout_2D
+            calc_plot_correspondence(locdata, expnames, explabels, conv_idx2cmpare, nclust, nmemb, colors, lstyles, lwidths, units_time, locplot, plot_name, ylimits=composite_levels["correspondence"], xlimits=composite_levels["correspondence"])
+            display("correspondence plotted")
         end
     end
 end

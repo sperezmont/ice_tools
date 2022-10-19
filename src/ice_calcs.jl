@@ -57,6 +57,25 @@ function is_floating(thick_data, slvl, bdh; rhoi=0.9167, rhosw=1.02)
     return floating_mask
 end
 
+# Load 1D
+@doc """
+Loads variable var
+"""
+function load_var1D(var, path2files, file_names)
+    # Load
+    time_data = []
+    var_array = []
+
+    for i in 1:length(file_names)
+        # Load
+        d_arrayi = ncread(path2files * file_names[i] * "/yelmo1D.nc", var)
+        push!(time_data, ncread(path2files * file_names[i] * "/yelmo1D.nc", "time"))
+        push!(var_array, d_arrayi)
+    end
+    return var_array, time_data
+end
+
+
 # locdata = "/home/sergio/entra/ice_data/Antarctica/ANT-32KM/ANT-32KM_TOPO-BedMachine.nc"
 
 # d = ncread(locdata,"H_ice");

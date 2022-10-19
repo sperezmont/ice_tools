@@ -15,16 +15,17 @@ include("/home/sergio/entra/tools/ice_tools/src/ice_calcs.jl")
 include("/home/sergio/entra/tools/ice_tools/src/ice_plots.jl")
 
 # Variables
-locdata = "/home/sergio/entra/models/yelmo_vers/v1.75/yelmox/output/ismip6/d03_LateralBC/dtt_02/"           # path to locate the data
-locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/dtt_02/"                                         # path to save plots
-expnames = ["dtt_02_amad1.0", "dtt_02_ammd1.0", "dtt_02_amfd1.0"] # each experiment is a column
-plot_name = "dtt_02_abum_dt1.0"
+locdata = "/home/sergio/entra/models/yelmo_vers/v1.753_sergio-test/yelmox/output/ismip6/d03_LateralBC/dtt_03/"           # path to locate the data
+locplot = "/home/sergio/entra/proyects/d03_LateralBC/plots/dtt_03/"                                         # path to save plots
+expnames = ["dtt_03_mm", "dtt_03_mmd0.1", "dtt_03_mmd1.0"] # each experiment is a column
+plot_name = "dtt_03_mm"
 
 ylimits = [(0, 4),       # iter_redo
     (0, 1),                # dt_now
     (0, 20)]               # pc_eta          
 
 # Load
+display("Plotting " * plot_name * "...")
 data, max_vals = [], []
 varnames = ["time", "iter_redo", "dt_now", "pc_eta"]
 varunits = ["yrs", "n", "yrs", "m/yr"]

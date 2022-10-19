@@ -57,12 +57,17 @@ function plot_lines(x, data, xname, yname, clrs, lnstls, lnswdths, lbls; ylimits
         all(y -> y == Inf, data[k]) || (push!(min_vs, minimum(data[k])))
         all(y -> y == Inf, data[k]) || (push!(max_vs, maximum(data[k])))
     end
-    
-    if length(lbls) != 1  
+
+    if length(lbls) != 1
         Legend(fig[1, 2], ax, framevisible=false, labelsize=0.8 * fntsz)
     end
     if ylimits == []
-        miny, maxy = minimum(min_vs), maximum(max_vs)
+        new_min_vs, new_max_vs = [], []
+        for i in 1:length(min_vs)
+            (min_vs[i] != -9999) && push!(new_min_vs, min_vs[i])
+            (max_vs[i] != -9999) && push!(new_max_vs, max_vs[i])
+        end
+        miny, maxy = minimum(new_min_vs), maximum(new_max_vs)
     else
         miny, maxy = ylimits
     end
@@ -137,7 +142,7 @@ function plot_maps(y, x, data, xname, yname, varname, lvls, lbls; log_scale=fals
     # Plotting
     p, maps = 1, []
     for i in 1:nrows, j in 1:ncols
-        ax = Axis(fig[i, j], title=lbls[p], titlesize=0.5 * fntsz,
+        ax = Axis(fig[i, j], title=lbls[p], titlesize=0.7 * fntsz,
             xlabelsize=0.8 * fntsz, ylabelsize=0.8 * fntsz,
             xlabel=xname, ylabel=yname)
         update_theme!()
@@ -223,18 +228,18 @@ function plot_multivar(data, xnames, ynames, varname, lvls; log_scale=false, clr
     for i in 1:nrows, j in 1:ncols
         if j == 1
             if i == nrows
-                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
+                ax = Axis(fig[i, j], title=lbls[p], titlesize=0.7 * fntsz, xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i], xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
+                ax = Axis(fig[i, j], title=lbls[p], titlesize=0.7 * fntsz, xlabelsize=fntsz, ylabelsize=fntsz, ylabel=ynames[i])
                 update_theme!()
             end
         else
             if i == nrows
-                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
+                ax = Axis(fig[i, j], title=lbls[p], titlesize=0.7 * fntsz, xlabelsize=fntsz, ylabelsize=fntsz, xlabel=xnames[j])
                 update_theme!()
             else
-                ax = Axis(fig[i, j], title=lbls[p], xlabelsize=fntsz, ylabelsize=fntsz)
+                ax = Axis(fig[i, j], title=lbls[p], titlesize=0.7 * fntsz, xlabelsize=fntsz, ylabelsize=fntsz)
                 update_theme!()
             end
         end
